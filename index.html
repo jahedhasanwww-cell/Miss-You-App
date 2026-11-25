@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Miss You ❤️ কাপল প্রাইভেট চ্যাট</title>
+
+  <!-- PWA & iOS Safari Settings -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#e11d48" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Miss You" />
+  <link rel="apple-touch-icon" href="./icon.png" />
+
+  <!-- OneSignal Web SDK v16 -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      background: #1e293b;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 32px rgba(0, 0, 0, 0.55);
+    }
+
+    .screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .screen.active { display: flex; }
+
+    /* Loading Screen */
+    #loading-screen {
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(160deg, #1e293b 0%, #311022 100%);
+    }
+    .big-heart-anim { font-size: 56px; animation: heartbeat 1.4s infinite; }
+
+    /* Auth Screen */
+    #auth-screen {
+      justify-content: center;
+      padding: 26px;
+      gap: 16px;
+      background: linear-gradient(160deg, #1e293b 0%, #311022 100%);
+    }
+    .brand-title { text-align: center; font-size: 26px; color: #fda4af; font-weight: 800; }
+    .brand-sub { text-align: center; font-size: 13px; color: #cbd5e1; margin-top: -8px; }
+
+    .tabs {
+      display: flex;
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 4px;
+      border: 1px solid #334155;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn.active { background: #e11d48; color: #fff; }
+
+    .form-stack { display: flex; flex-direction: column; gap: 12px; }
+    .input-field {
+      width: 100%;
+      padding: 13px 15px;
+      border-radius: 12px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    .input-field:focus { border-color: #f43f5e; }
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #e11d48, #be123c);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-google {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #475569;
+      background: #fff;
+      color: #0f172a;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #334155;
+    }
+    .error-text { color: #fb7185; font-size: 13px; text-align: center; min-height: 18px; }
+
+    /* Pairing Screen */
+    #pairing-screen {
+      padding: 20px;
+      gap: 16px;
+      background: linear-gradient(160deg, #1e293b 0%, #2b1223 100%);
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #334155;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card h3 { font-size: 16px; color: #fda4af; }
+    .card p { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+    .code-box {
+      background: #1e293b;
+      border: 2px dashed #f43f5e;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      color: #fff;
+    }
+    .row-btns { display: flex; gap: 10px; }
+
+    /* Main Chat Screen */
+    #main-screen { overflow: hidden; }
+    .header {
+      padding: 12px 16px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left h2 { font-size: 17px; color: #fff; }
+    .header-left span { font-size: 12px; color: #fda4af; }
+    .header-actions { display: flex; gap: 6px; }
+    .icon-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .icon-btn.notif-off { border-color: #f59e0b; color: #fbbf24; }
+    .icon-btn.notif-on { border-color: #10b981; color: #34d399; }
+
+    /* Miss You Panel */
+    .miss-panel {
+      background: linear-gradient(135deg, #3b0d1e 0%, #1e293b 100%);
+      padding: 14px 16px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .miss-info { flex: 1; }
+    .miss-info .count { font-size: 13px; color: #fda4af; font-weight: 700; }
+    .miss-info .last-time { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+    .miss-btn {
+      background: linear-gradient(135deg, #f43f5e, #e11d48);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(244, 63, 94, 0.45);
+      transition: transform 0.15s;
+    }
+    .miss-btn:active { transform: scale(0.92); }
+    .miss-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Chat Area */
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .msg.me {
+      align-self: flex-end;
+      background: #e11d48;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.partner {
+      align-self: flex-start;
+      background: #334155;
+      color: #f8fafc;
+      border-bottom-left-radius: 4px;
+    }
+    .msg.miss-pill {
+      align-self: center;
+      background: rgba(244, 63, 94, 0.18);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-align: center;
+    }
+    .msg-time {
+      display: block;
+      font-size: 10px;
+      opacity: 0.7;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    /* Input Bar */
+    .chat-input-bar {
+      padding: 10px 12px;
+      background: #0f172a;
+      border-top: 1px solid #334155;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chat-input-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 24px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    .send-btn {
+      background: #e11d48;
+      color: #fff;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Incoming Miss You Overlay */
+    #miss-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 24px;
+      text-align: center;
+    }
+    #miss-overlay .big-heart { font-size: 84px; animation: heartbeat 0.9s infinite; }
+    #miss-overlay h2 { margin-top: 16px; font-size: 24px; color: #fda4af; }
+    .overlay-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; width: 100%; max-width: 260px; }
+
+    /* Toast */
+    #toast {
+      position: absolute;
+      bottom: 78px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      border: 1px solid #f43f5e;
+      color: #fff;
+      padding: 9px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      display: none;
+      z-index: 70;
+      white-space: nowrap;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.18); }
+      50% { transform: scale(1); }
+      75% { transform: scale(1.12); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- ০. লোডিং স্ক্রিন -->
+  <div id="loading-screen" class="screen active">
+    <div class="big-heart-anim">❤️</div>
+    <p style="color:#cbd5e1; font-size:14px;">লোড হচ্ছে...</p>
+  </div>
+
+  <!-- ১. লগইন ও রেজিস্ট্রেশন স্ক্রিন -->
+  <div id="auth-screen" class="screen">
+    <div class="big-heart-anim" style="text-align:center;">❤️</div>
+    <div class="brand-title">Miss You</div>
+    <div class="brand-sub">প্রাইভেট কাপল চ্যাট ও মিস ইউ নোটিফিকেশন</div>
+
+    <div class="tabs">
+      <button id="tab-login" class="tab-btn active" type="button">লগইন</button>
+      <button id="tab-signup" class="tab-btn" type="button">নতুন অ্যাকাউন্ট</button>
+    </div>
+
+    <form id="auth-form" class="form-stack">
+      <input type="text" id="auth-name" class="input-field" placeholder="আপনার নাম (যেমন: জাহিদ)" style="display:none;" />
+      <input type="email" id="auth-email" class="input-field" placeholder="ইমেইল লিখুন" autocomplete="email" required />
+      <input type="password" id="auth-password" class="input-field" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)" autocomplete="current-password" required />
+      <div id="auth-error" class="error-text"></div>
+      <button type="submit" id="auth-submit-btn" class="btn-primary">লগইন করুন</button>
+    </form>
+
+    <div class="divider">অথবা</div>
+
+    <button id="google-btn" class="btn-google" type="button">
+      <span>🔵</span> Google দিয়ে সরাসরি ঢুকুন
+    </button>
+  </div>
+
+  <!-- ২. কাপল পেয়ারিং স্ক্রিন -->
+  <div id="pairing-screen" class="screen">
+    <div class="top-bar">
+      <div>
+        <div style="font-size:16px; font-weight:700; color:#fff;">স্বাগতম, <span id="pairing-user-name">বন্ধু</span> ❤️</div>
+        <div style="font-size:12px; color:#94a3b8;">পার্টনারের সাথে কানেক্ট করুন</div>
+      </div>
+      <button id="pairing-logout-btn" class="icon-btn">🚪 লগআউট</button>
+    </div>
+
+    <div class="card" id="create-code-card">
+      <h3>১. নতুন ইনভাইট কোড তৈরি করুন</h3>
+      <p>আপনি কোড তৈরি করে আপনার পার্টনারকে পাঠান। তিনি কোডটি বসালেই আপনাদের প্রাইভেট চ্যাট চালু হয়ে যাবে।</p>
+      <button id="create-code-btn" class="btn-primary">🔗 ৬ ডিজিটের কোড তৈরি করুন</button>
+    </div>
+
+    <div class="card" id="waiting-code-card" style="display:none;">
+      <h3>⏳ পার্টনারের অপেক্ষায়...</h3>
+      <p>নিচের কোডটি আপনার পার্টনারকে পাঠান। তিনি অ্যাপে ঢুকে এই কোড বসালেই চ্যাট অটোমেটিক খুলে যাবে:</p>
+      <div class="code-box" id="my-invite-code">------</div>
+      <div class="row-btns">
+        <button id="copy-code-btn" class="btn-primary">📋 কোড কপি</button>
+        <button id="share-code-btn" class="btn-secondary">📤 শেয়ার করুন</button>
+      </div>
+      <button id="cancel-code-btn" class="btn-secondary" style="border-color:#fb7185; color:#fda4af;">✖ কোড বাতিল করুন</button>
+    </div>
+
+    <div class="card" id="join-code-card">
+      <h3>২. পার্টনারের কোড আছে?</h3>
+      <p>আপনার পার্টনার যদি আপনাকে ৬ ডিজিটের কোড দিয়ে থাকেন, তবে নিচে বসিয়ে কানেক্ট করুন:</p>
+      <input type="text" id="join-code-input" class="input-field" placeholder="যেমন: 482915" maxlength="6" inputmode="numeric" style="text-align:center; font-size:20px; letter-spacing:4px;" />
+      <div id="join-error" class="error-text"></div>
+      <button id="join-code-btn" class="btn-primary">❤️ পার্টনারের সাথে কানেক্ট করুন</button>
+    </div>
+  </div>
+
+  <!-- ৩. মূল চ্যাট ও Miss You স্ক্রিন -->
+  <div id="main-screen" class="screen">
+    <div class="header">
+      <div class="header-left">
+        <h2 id="partner-name-title">পার্টনার</h2>
+        <span id="my-status">প্রাইভেট রুম</span>
+      </div>
+      <div class="header-actions">
+        <button id="notif-btn" class="icon-btn notif-off" title="নোটিফিকেশন চালু করুন">🔕 চালু করুন</button>
+        <button id="unpair-btn" class="icon-btn" title="আনপেয়ার / রুম ছাড়ুন">💔</button>
+        <button id="logout-btn" class="icon-btn" title="লগআউট">🚪</button>
+      </div>
+    </div>
+
+    <div class="miss-panel">
+      <div class="miss-info">
+        <div class="count" id="miss-counter">মোট মিস করা হয়েছে: ০ বার</div>
+        <div class="last-time" id="last-miss-time">এখনো কেউ মিস বাটন চাপেনি</div>
+      </div>
+      <button id="miss-btn" class="miss-btn">❤️ Miss You</button>
+    </div>
+
+    <div class="chat-box" id="chat-box"></div>
+
+    <form class="chat-input-bar" id="chat-form">
+      <input type="text" id="msg-input" placeholder="মেসেজ লিখুন..." autocomplete="off" />
+      <button type="submit" class="send-btn">➤</button>
+    </form>
+  </div>
+
+  <!-- ইনকামিং Miss You ফুল-স্ক্রিন অ্যালার্ট -->
+  <div id="miss-overlay">
+    <div class="big-heart">❤️</div>
+    <h2 id="miss-overlay-text">সে তোমাকে মিস করছে!</h2>
+    <div class="overlay-actions">
+      <button id="reply-miss-btn" class="btn-primary" style="border-radius:24px;">আমিও তোমাকে মিস করছি ❤️</button>
+      <button id="close-overlay-btn" class="btn-secondary" style="border-radius:24px;">বন্ধ করুন</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    updateProfile,
+    GoogleAuthProvider,
+    signInWithPopup,
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getDatabase,
+    ref,
+    push,
+    set,
+    get,
+    remove,
+    onValue,
+    query,
+    limitToLast,
+    runTransaction
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  // =========================================================================
+  // Firebase কনফিগারেশন (সেট করা আছে ✅)
+  // =========================================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPo-h9XmQJX4TkZ6dvriSEbL3Fb86_SwA",
+    authDomain: "miss-you-app-7d33c.firebaseapp.com",
+    databaseURL: "https://miss-you-app-7d33c-default-rtdb.firebaseio.com",
+    projectId: "miss-you-app-7d33c",
+    storageBucket: "miss-you-app-7d33c.firebasestorage.app",
+    messagingSenderId: "914825623456",
+    appId: "1:914825623456:web:c4c81e62621756580b96c5"
+  };
+
+  // =========================================================================
+  // ব্যাকগ্রাউন্ড পুশ নোটিফিকেশনের জন্য (পরে OneSignal ও Cloudflare Worker বানালে বসাবেন)
+  // =========================================================================
+  const ONESIGNAL_APP_ID = "YOUR_ONESIGNAL_APP_ID";
+  const PUSH_WORKER_URL = "YOUR_CLOUDFLARE_WORKER_URL";
+
+  // =========================================================================
+  // নিচের কোড পরিবর্তন করার প্রয়োজন নেই
+  // =========================================================================
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+  const googleProvider = new GoogleAuthProvider();
+
+  const basePath = window.location.pathname.endsWith("/")
+    ? window.location.pathname
+    : window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
+  const swPath = basePath.replace(/^\//, "") + "OneSignalSDKWorker.js";
+
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  if (ONESIGNAL_APP_ID && !ONESIGNAL_APP_ID.startsWith("YOUR_")) {
+    OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        serviceWorkerParam: { scope: basePath },
+        serviceWorkerPath: swPath
+      });
+    });
+  }
+
+  const loadingScreen = document.getElementById("loading-screen");
+  const authScreen = document.getElementById("auth-screen");
+  const pairingScreen = document.getElementById("pairing-screen");
+  const mainScreen = document.getElementById("main-screen");
+
+  function showScreen(target) {
+    [loadingScreen, authScreen, pairingScreen, mainScreen].forEach(s => s.classList.remove("active"));
+    target.classList.add("active");
+  }
+
+  let currentUser = null;
+  let myName = "";
+  let currentRoomId = null;
+  let pendingCode = null;
+  let partnerUid = null;
+  let partnerName = "";
+  let missInitialLoaded = false;
+  let userUnsub = null;
+  let roomUnsubs = [];
+
+  function clearRoomListeners() {
+    roomUnsubs.forEach(fn => { try { fn(); } catch (_) {} });
+    roomUnsubs = [];
+    missInitialLoaded = false;
+  }
+
+  function showToast(text) {
+    const t = document.getElementById("toast");
+    t.textContent = text;
+    t.style.display = "block";
+    setTimeout(() => { t.style.display = "none"; }, 2800);
+  }
+
+  function playChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (_) {}
+  }
+
+  function formatTime(ts) {
+    return new Date(ts).toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Auth UI
+  let authMode = "login";
+  const tabLogin = document.getElementById("tab-login");
+  const tabSignup = document.getElementById("tab-signup");
+  const authNameInput = document.getElementById("auth-name");
+  const authSubmitBtn = document.getElementById("auth-submit-btn");
+  const authError = document.getElementById("auth-error");
+
+  tabLogin.addEventListener("click", () => {
+    authMode = "login";
+    tabLogin.classList.add("active");
+    tabSignup.classList.remove("active");
+    authNameInput.style.display = "none";
+    authNameInput.required = false;
+    authSubmitBtn.textContent = "লগইন করুন";
+    authError.textContent = "";
+  });
+
+  tabSignup.addEventListener("click", () => {
+    authMode = "signup";
+    tabSignup.classList.add("active");
+    tabLogin.classList.remove("active");
+    authNameInput.style.display = "block";
+    authNameInput.required = true;
+    authSubmitBtn.textContent = "নতুন অ্যাকাউন্ট তৈরি করুন";
+    authError.textContent = "";
+  });
+
+  document.getElementById("auth-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("auth-email").value.trim();
+    const pass = document.getElementById("auth-password").value;
+    const name = authNameInput.value.trim();
+    authError.textContent = "";
+
+    try {
+      authSubmitBtn.disabled = true;
+      if (authMode === "signup") {
+        if (!name) {
+          authError.textContent = "অনুগ্রহ করে আপনার নাম লিখুন।";
+          return;
+        }
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await updateProfile(cred.user, { displayName: name });
+        await set(ref(db, `users/${cred.user.uid}`), {
+          name: name,
+          email: email,
+          createdAt: Date.now()
+        });
+      } else {
+        await signInWithEmailAndPassword(auth, email, pass);
+      }
+    } catch (err) {
+      if (err.code === "auth/email-already-in-use") {
+        authError.textContent = "এই ইমেইলে আগেই অ্যাকাউন্ট আছে। লগইন করুন।";
+      } else if (err.code === "auth/weak-password") {
+        authError.textContent = "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।";
+      } else {
+        authError.textContent = "ইমেইল বা পাসওয়ার্ড সঠিক নয়।";
+      }
+    } finally {
+      authSubmitBtn.disabled = false;
+    }
+  });
+
+  document.getElementById("google-btn").addEventListener("click", async () => {
+    authError.textContent = "";
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const userSnap = await get(ref(db, `users/${user.uid}`));
+      if (!userSnap.exists()) {
+        await set(ref(db, `users/${user.uid}`), {
+          name: user.displayName || user.email.split("@")[0],
+          email: user.email,
+          createdAt: Date.now()
+        });
+      }
+    } catch (err) {
+      authError.textContent = "Google লগইন ব্যর্থ হয়েছে (Authorized domain ও Google Sign-in চেক করুন)";
+    }
+  });
+
+  async function doLogout() {
+    if (!confirm("লগআউট করতে চান?")) return;
+    if (userUnsub) userUnsub();
+    clearRoomListeners();
+    await signOut(auth);
+    window.location.reload();
+  }
+  document.getElementById("logout-btn").addEventListener("click", doLogout);
+  document.getElementById("pairing-logout-btn").addEventListener("click", doLogout);
+
+  // Auth State
+  onAuthStateChanged(auth, async (user) => {
+    if (userUnsub) userUnsub();
+    clearRoomListeners();
+
+    if (!user) {
+      currentUser = null;
+      showScreen(authScreen);
+      return;
+    }
+
+    currentUser = user;
+    setupOneSignalUser(user.uid);
+
+    const uRef = ref(db, `users/${user.uid}`);
+    const snap = await get(uRef);
+    if (!snap.exists()) {
+      const fallbackName = user.displayName || (user.email ? user.email.split("@")[0] : "বন্ধু");
+      await set(uRef, { name: fallbackName, email: user.email || "", createdAt: Date.now() });
+    }
+
+    userUnsub = onValue(uRef, (userSnap) => {
+      const data = userSnap.val() || {};
+      myName = data.name || user.displayName || "বন্ধু";
+      currentRoomId = data.roomId || null;
+      pendingCode = data.pendingCode || null;
+
+      document.getElementById("pairing-user-name").textContent = myName;
+
+      if (!currentRoomId) {
+        clearRoomListeners();
+        showPairingView(false);
+        showScreen(pairingScreen);
+      } else {
+        watchRoom(currentRoomId);
+      }
+    });
+  });
+
+  // OneSignal
+  const notifBtn = document.getElementById("notif-btn");
+
+  function setupOneSignalUser(uid) {
+    if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.startsWith("YOUR_")) return;
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.login(uid);
+        updateNotifButton(OneSignal.Notifications.permission);
+      } catch (e) {
+        console.error("OneSignal login error:", e);
+      }
+    });
+  }
+
+  function updateNotifButton(isGranted) {
+    if (isGranted) {
+      notifBtn.textContent = "🔔 চালু";
+      notifBtn.className = "icon-btn notif-on";
+    } else {
+      notifBtn.textContent = "🔕 চালু করুন";
+      notifBtn.className = "icon-btn notif-off";
+    }
+  }
+
+  notifBtn.addEventListener("click", () => {
+    if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.startsWith("YOUR_")) {
+      showToast("ব্যাকগ্রাউন্ড নোটিফিকেশনের জন্য OneSignal সেটআপ বাকি");
+      return;
+    }
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.Notifications.requestPermission();
+        if (currentUser) await OneSignal.login(currentUser.uid);
+        const granted = OneSignal.Notifications.permission;
+        updateNotifButton(granted);
+        showToast(granted ? "নোটিফিকেশন চালু হয়েছে! 🔔" : "নোটিফিকেশন পারমিশন দেওয়া হয়নি");
+      } catch (e) {
+        showToast("iPhone-এ আগে Add to Home Screen করুন");
+      }
+    });
+  });
+
+  // Pairing
+  const createCodeCard = document.getElementById("create-code-card");
+  const waitingCodeCard = document.getElementById("waiting-code-card");
+  const joinCodeCard = document.getElementById("join-code-card");
+  const myInviteCodeEl = document.getElementById("my-invite-code");
+  const joinError = document.getElementById("join-error");
+
+  function showPairingView(isWaiting, code = "") {
+    if (isWaiting && code) {
+      createCodeCard.style.display = "none";
+      joinCodeCard.style.display = "none";
+      waitingCodeCard.style.display = "flex";
+      myInviteCodeEl.textContent = code;
+    } else {
+      createCodeCard.style.display = "flex";
+      joinCodeCard.style.display = "flex";
+      waitingCodeCard.style.display = "none";
+    }
+  }
+
+  document.getElementById("create-code-btn").addEventListener("click", async () => {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const roomId = `room_${currentUser.uid.slice(0, 8)}_${Date.now()}`;
+
+    try {
+      await set(ref(db, `rooms/${roomId}`), {
+        memberCount: 1,
+        createdAt: Date.now(),
+        members: {
+          [currentUser.uid]: { name: myName, joinedAt: Date.now() }
+        },
+        missStats: { totalCount: 0 }
+      });
+
+      await set(ref(db, `inviteCodes/${code}`), {
+        roomId: roomId,
+        creatorUid: currentUser.uid,
+        creatorName: myName,
+        createdAt: Date.now()
+      });
+
+      await set(ref(db, `users/${currentUser.uid}`), {
+        name: myName,
+        email: currentUser.email || "",
+        roomId: roomId,
+        pendingCode: code
+      });
+    } catch (err) {
+      showToast("কোড তৈরিতে সমস্যা হয়েছে! Realtime DB Rules চেক করুন");
+    }
+  });
+
+  document.getElementById("copy-code-btn").addEventListener("click", async () => {
+    if (!pendingCode) return;
+    try {
+      await navigator.clipboard.writeText(pendingCode);
+      showToast("কোড কপি হয়েছে! পার্টনারকে পাঠান 📋");
+    } catch (_) {
+      showToast(`কোড: ${pendingCode}`);
+    }
+  });
+
+  document.getElementById("share-code-btn").addEventListener("click", async () => {
+    if (!pendingCode) return;
+    const shareText = `আমাদের প্রাইভেট Miss You অ্যাপে যুক্ত হতে এই কোডটি দাও: ${pendingCode}\nঅ্যাপ লিংক: ${window.location.href}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Miss You ❤️", text: shareText });
+      } catch (_) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        showToast("মেসেজ ও কোড কপি হয়েছে! WhatsApp-এ পেস্ট করুন");
+      } catch (_) {}
+    }
+  });
+
+  document.getElementById("cancel-code-btn").addEventListener("click", async () => {
+    try {
+      if (pendingCode) await remove(ref(db, `inviteCodes/${pendingCode}`));
+      if (currentRoomId) await remove(ref(db, `rooms/${currentRoomId}`));
+      await set(ref(db, `users/${currentUser.uid}`), {
+        name: myName,
+        email: currentUser.email || ""
+      });
+    } catch (_) {}
+  });
+
+  document.getElementById("join-code-btn").addEventListener("click", async () => {
+    const code = document.getElementById("join-code-input").value.trim();
+    joinError.textContent = "";
+
+    if (code.length !== 6) {
+      joinError.textContent = "সঠিক ৬ ডিজিটের কোড লিখুন।";
+      return;
+    }
+
+    try {
+      const codeSnap = await get(ref(db, `inviteCodes/${code}`));
+      if (!codeSnap.exists()) {
+        joinError.textContent = "কোডটি পাওয়া যায়নি বা ইতিমধ্যে ব্যবহৃত হয়েছে।";
+        return;
+      }
+
+      const invite = codeSnap.val();
+      if (invite.creatorUid === currentUser.uid) {
+        joinError.textContent = "নিজের কোড নিজে ব্যবহার করা যাবে না!";
+        return;
+      }
+
+      await set(ref(db, `rooms/${invite.roomId}/members/${currentUser.uid}`), {
+        name: myName,
+        joinedAt: Date.now()
+      });
+
+      await set(ref(db, `rooms/${invite.roomId}/memberCount`), 2);
+
+      await set(ref(db, `users/${currentUser.uid}`), {
+        name: myName,
+        email: currentUser.email || "",
+        roomId: invite.roomId
+      });
+
+      await remove(ref(db, `inviteCodes/${code}`));
+      showToast(`${invite.creatorName}-এর সাথে কানেক্ট হয়েছে! ❤️`);
+    } catch (err) {
+      joinError.textContent = "কানেক্ট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।";
+    }
+  });
+
+  // Watch Couple Room
+  const chatBox = document.getElementById("chat-box");
+  const missCounterEl = document.getElementById("miss-counter");
+  const lastMissTimeEl = document.getElementById("last-miss-time");
+  const missOverlay = document.getElementById("miss-overlay");
+  const missOverlayText = document.getElementById("miss-overlay-text");
+
+  function watchRoom(roomId) {
+    clearRoomListeners();
+
+    const membersUnsub = onValue(ref(db, `rooms/${roomId}/members`), (snap) => {
+      const members = snap.val();
+      if (!members || !members[currentUser.uid]) {
+        showPairingView(false);
+        showScreen(pairingScreen);
+        return;
+      }
+
+      const uids = Object.keys(members);
+      const otherUid = uids.find(u => u !== currentUser.uid);
+
+      if (!otherUid) {
+        partnerUid = null;
+        if (pendingCode) {
+          showPairingView(true, pendingCode);
+          showScreen(pairingScreen);
+        } else {
+          showToast("পার্টনার রুম থেকে বিচ্ছিন্ন হয়েছে।");
+          set(ref(db, `users/${currentUser.uid}`), {
+            name: myName,
+            email: currentUser.email || ""
+          });
+        }
+        return;
+      }
+
+      // পার্টনার যুক্ত হয়ে গেলে পুরনো pendingCode পরিষ্কার করে দেওয়া
+      if (pendingCode) {
+        pendingCode = null;
+        remove(ref(db, `users/${currentUser.uid}/pendingCode`)).catch(() => {});
+      }
+
+      partnerUid = otherUid;
+      partnerName = members[otherUid].name || "পার্টনার";
+      document.getElementById("partner-name-title").textContent = partnerName;
+      document.getElementById("my-status").textContent = `আপনি: ${myName} • কানেক্টেড ❤️`;
+      showScreen(mainScreen);
+
+      if (roomUnsubs.length === 1) {
+        attachChatAndMissListeners(roomId);
+      }
+    });
+
+    roomUnsubs.push(membersUnsub);
+  }
+
+  function attachChatAndMissListeners(roomId) {
+    const msgQuery = query(ref(db, `rooms/${roomId}/messages`), limitToLast(100));
+    const msgUnsub = onValue(msgQuery, (snap) => {
+      chatBox.innerHTML = "";
+      snap.forEach((child) => {
+        const data = child.val();
+        const div = document.createElement("div");
+
+        if (data.type === "miss") {
+          div.className = "msg miss-pill";
+          const senderText = data.senderUid === currentUser.uid
+            ? `❤️ তুমি ${partnerName}-কে মিস করেছো`
+            : `❤️ ${data.senderName} তোমাকে মিস করছে!`;
+          div.textContent = `${senderText} • ${formatTime(data.timestamp)}`;
+        } else {
+          const isMe = data.senderUid === currentUser.uid;
+          div.className = `msg ${isMe ? "me" : "partner"}`;
+
+          const textSpan = document.createElement("span");
+          textSpan.textContent = data.text;
+          const timeSpan = document.createElement("span");
+          timeSpan.className = "msg-time";
+          timeSpan.textContent = formatTime(data.timestamp);
+
+          div.appendChild(textSpan);
+          div.appendChild(timeSpan);
+        }
+        chatBox.appendChild(div);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    const countUnsub = onValue(ref(db, `rooms/${roomId}/missStats/totalCount`), (snap) => {
+      const count = snap.val() || 0;
+      missCounterEl.textContent = `মোট মিস করা হয়েছে: ${count.toLocaleString("bn-BD")} বার`;
+    });
+
+    const latestUnsub = onValue(ref(db, `rooms/${roomId}/missStats/latest`), (snap) => {
+      const data = snap.val();
+      if (!data) {
+        missInitialLoaded = true;
+        return;
+      }
+      lastMissTimeEl.textContent = `সর্বশেষ: ${data.fromName} • ${formatTime(data.timestamp)}`;
+
+      if (missInitialLoaded && data.fromUid !== currentUser.uid) {
+        missOverlayText.textContent = `${data.fromName} তোমাকে মিস করছে ❤️`;
+        missOverlay.style.display = "flex";
+        playChime();
+        if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+      }
+      missInitialLoaded = true;
+    });
+
+    roomUnsubs.push(msgUnsub, countUnsub, latestUnsub);
+  }
+
+  document.getElementById("unpair-btn").addEventListener("click", async () => {
+    if (!confirm("আপনি কি সত্যিই এই পার্টনারের সাথে কানেকশন বিচ্ছিন্ন করতে চান?")) return;
+    try {
+      const oldRoom = currentRoomId;
+      clearRoomListeners();
+      await remove(ref(db, `rooms/${oldRoom}/members/${currentUser.uid}`));
+      await set(ref(db, `users/${currentUser.uid}`), {
+        name: myName,
+        email: currentUser.email || ""
+      });
+      showToast("কানেকশন বিচ্ছিন্ন হয়েছে।");
+    } catch (_) {
+      showToast("বিচ্ছিন্ন করতে সমস্যা হয়েছে।");
+    }
+  });
+
+  async function sendPushNotification(title, body) {
+    if (!PUSH_WORKER_URL || PUSH_WORKER_URL.startsWith("YOUR_") || !partnerUid) return;
+    try {
+      const idToken = await currentUser.getIdToken();
+      await fetch(PUSH_WORKER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          partnerUid: partnerUid,
+          title: title,
+          body: body,
+          url: window.location.href
+        })
+      });
+    } catch (err) {
+      console.error("Push error:", err);
+    }
+  }
+
+  const missBtn = document.getElementById("miss-btn");
+
+  async function triggerMissYou() {
+    if (!currentRoomId || !partnerUid) return;
+    missBtn.disabled = true;
+    const now = Date.now();
+
+    try {
+      await runTransaction(ref(db, `rooms/${currentRoomId}/missStats/totalCount`), (c) => (c || 0) + 1);
+      await set(ref(db, `rooms/${currentRoomId}/missStats/latest`), {
+        fromUid: currentUser.uid,
+        fromName: myName,
+        timestamp: now
+      });
+      await push(ref(db, `rooms/${currentRoomId}/messages`), {
+        type: "miss",
+        senderUid: currentUser.uid,
+        senderName: myName,
+        timestamp: now
+      });
+
+      if (navigator.vibrate) navigator.vibrate(100);
+      await sendPushNotification("Miss You ❤️", `${myName} তোমাকে মিস করছে ❤️`);
+      showToast(`${partnerName}-কে জানিয়ে দেওয়া হয়েছে ❤️`);
+    } catch (err) {
+      showToast("পাঠাতে সমস্যা হয়েছে!");
+    }
+
+    setTimeout(() => { missBtn.disabled = false; }, 3000);
+  }
+
+  missBtn.addEventListener("click", triggerMissYou);
+
+  document.getElementById("reply-miss-btn").addEventListener("click", () => {
+    missOverlay.style.display = "none";
+    triggerMissYou();
+  });
+
+  document.getElementById("close-overlay-btn").addEventListener("click", () => {
+    missOverlay.style.display = "none";
+  });
+
+  const msgInput = document.getElementById("msg-input");
+  document.getElementById("chat-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if (!text || !currentRoomId) return;
+
+    msgInput.value = "";
+    try {
+      await push(ref(db, `rooms/${currentRoomId}/messages`), {
+        type: "text",
+        text: text,
+        senderUid: currentUser.uid,
+        senderName: myName,
+        timestamp: Date.now()
+      });
+      await sendPushNotification(`💬 ${myName}`, text);
+    } catch (err) {
+      showToast("মেসেজ যায়নি!");
+    }
+  });
+</script>
+</body>
+</html>
