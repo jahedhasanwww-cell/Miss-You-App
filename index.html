@@ -511,7 +511,7 @@
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   // =========================================================================
-  // Firebase কনফিগারেশন (সেট করা আছে ✅)
+  // Firebase, OneSignal এবং Cloudflare Worker কনফিগারেশন (সব সেট করা আছে ✅)
   // =========================================================================
   const firebaseConfig = {
     apiKey: "AIzaSyBPo-h9XmQJX4TkZ6dvriSEbL3Fb86_SwA",
@@ -523,14 +523,11 @@
     appId: "1:914825623456:web:c4c81e62621756580b96c5"
   };
 
-  // =========================================================================
-  // ব্যাকগ্রাউন্ড পুশ নোটিফিকেশনের জন্য (পরে OneSignal ও Cloudflare Worker বানালে বসাবেন)
-  // =========================================================================
-  const ONESIGNAL_APP_ID = "YOUR_ONESIGNAL_APP_ID";
-  const PUSH_WORKER_URL = "YOUR_CLOUDFLARE_WORKER_URL";
+  const ONESIGNAL_APP_ID = "ba5247be-972d-4878-8673-29e9b17961a1";
+  const PUSH_WORKER_URL = "https://purple-thunder-1b1bmiss-you-push.jahedhasan-www.workers.dev";
 
   // =========================================================================
-  // নিচের কোড পরিবর্তন করার প্রয়োজন নেই
+  // অ্যাপের মূল লজিক
   // =========================================================================
 
   const app = initializeApp(firebaseConfig);
@@ -544,15 +541,17 @@
   const swPath = basePath.replace(/^\//, "") + "OneSignalSDKWorker.js";
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  if (ONESIGNAL_APP_ID && !ONESIGNAL_APP_ID.startsWith("YOUR_")) {
-    OneSignalDeferred.push(async function (OneSignal) {
-      await OneSignal.init({
-        appId: ONESIGNAL_APP_ID,
-        serviceWorkerParam: { scope: basePath },
-        serviceWorkerPath: swPath
-      });
+  OneSignalDeferred.push(async function (OneSignal) {
+    await OneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      serviceWorkerParam: { scope: basePath },
+      serviceWorkerPath: swPath
     });
-  }
+    OneSignal.Notifications.addEventListener("permissionChange", (granted) => {
+      updateNotifButton(granted);
+    });
+    updateNotifButton(OneSignal.Notifications.permission);
+  });
 
   const loadingScreen = document.getElementById("loading-screen");
   const authScreen = document.getElementById("auth-screen");
@@ -695,6 +694,11 @@
     if (!confirm("লগআউট করতে চান?")) return;
     if (userUnsub) userUnsub();
     clearRoomListeners();
+    try {
+      window.OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.logout();
+      });
+    } catch (_) {}
     await signOut(auth);
     window.location.reload();
   }
@@ -744,7 +748,6 @@
   const notifBtn = document.getElementById("notif-btn");
 
   function setupOneSignalUser(uid) {
-    if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.startsWith("YOUR_")) return;
     window.OneSignalDeferred.push(async function (OneSignal) {
       try {
         await OneSignal.login(uid);
@@ -766,19 +769,18 @@
   }
 
   notifBtn.addEventListener("click", () => {
-    if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.startsWith("YOUR_")) {
-      showToast("ব্যাকগ্রাউন্ড নোটিফিকেশনের জন্য OneSignal সেটআপ বাকি");
-      return;
-    }
     window.OneSignalDeferred.push(async function (OneSignal) {
       try {
         await OneSignal.Notifications.requestPermission();
+        if (OneSignal.Notifications.permission) {
+          await OneSignal.User.PushSubscription.optIn();
+        }
         if (currentUser) await OneSignal.login(currentUser.uid);
         const granted = OneSignal.Notifications.permission;
         updateNotifButton(granted);
         showToast(granted ? "নোটিফিকেশন চালু হয়েছে! 🔔" : "নোটিফিকেশন পারমিশন দেওয়া হয়নি");
       } catch (e) {
-        showToast("iPhone-এ আগে Add to Home Screen করুন");
+        showToast("iPhone-এ আগে Safari থেকে Add to Home Screen করুন");
       }
     });
   });
@@ -949,7 +951,6 @@
         return;
       }
 
-      // পার্টনার যুক্ত হয়ে গেলে পুরনো pendingCode পরিষ্কার করে দেওয়া
       if (pendingCode) {
         pendingCode = null;
         remove(ref(db, `users/${currentUser.uid}/pendingCode`)).catch(() => {});
@@ -1043,10 +1044,10 @@
   });
 
   async function sendPushNotification(title, body) {
-    if (!PUSH_WORKER_URL || PUSH_WORKER_URL.startsWith("YOUR_") || !partnerUid) return;
+    if (!PUSH_WORKER_URL || !partnerUid) return;
     try {
       const idToken = await currentUser.getIdToken();
-      await fetch(PUSH_WORKER_URL, {
+      const res = await fetch(PUSH_WORKER_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1059,6 +1060,9 @@
           url: window.location.href
         })
       });
+      if (!res.ok) {
+        console.warn("Push worker error:", res.status, await res.text());
+      }
     } catch (err) {
       console.error("Push error:", err);
     }
